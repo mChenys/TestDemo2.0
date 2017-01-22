@@ -20,4 +20,37 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="TagView"/>
+    <Button
+        android:textAllCaps="false"
+        android:onClick="testTitleMove"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TitleMove"/>
+
+    <Button
+        android:textAllCaps="false"
+        android:onClick="testDragView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DragView"/>
+
+    <Button
+        android:textAllCaps="false"
+        android:onClick="testShareWidow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ShareWindow"/>
+
+    <Button
+        android:textAllCaps="false"
+        android:onClick="testTagView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TagView2"/>
+    <Button
+        android:textAllCaps="false"
+        android:onClick="testRecordView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="RecordView"/>
 </LinearLayout>

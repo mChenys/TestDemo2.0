@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+             android:background="#E4E2DF"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+    <mchenys.net.csdn.blog.testmoden20.test4.framework.DragGridView
+        android:background="#fff"
+        android:layout_gravity="bottom"
+        android:id="@+id/dragGridView"
+        android:listSelector="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:padding="5dp"
+        android:cacheColorHint="@android:color/transparent"
+        android:verticalSpacing="10dip"
+        android:horizontalSpacing="10dip"
+        android:columnWidth="90dip"
+        android:gravity="center"
+        android:numColumns="auto_fit" >
+    </mchenys.net.csdn.blog.testmoden20.test4.framework.DragGridView>
+</FrameLayout>

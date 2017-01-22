@@ -2,7 +2,23 @@
 <manifest package="mchenys.net.csdn.blog.testmoden20"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera.autofocus" />
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+
     <application
+        android:name=".test5.MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -17,6 +33,14 @@
         </activity>
         <activity android:name=".test1.TestListRecycleActivity"/>
         <activity android:name=".test2.TestTagViewActivity"/>
+        <activity android:name=".test2.NextTagViewActivity"/>
+        <activity android:name=".test3.TestTitleMoveActivity"/>
+        <activity android:name=".test4.TestDragGridViewActivity"/>
+        <activity android:name=".test5.TestWindowShareActivity"/>
+        <activity android:name=".test5.NextPageActivity"/>
+        <activity android:name=".test6.TestTagViewActivity2"/>
+        <activity android:name=".test7.TestRecordViewActivity"/>
+        <activity android:name=".test7.PreViewActivity"/>
     </application>
 
 </manifest>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--最大录制时长-->
+    <attr name="maxDuration" format="integer"/>
+
+    <declare-styleable name="RecorderView">
+        <attr name="maxDuration"/>
+    </declare-styleable>
+</resources>

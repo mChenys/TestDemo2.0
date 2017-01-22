@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="vertical">
+
+    <FrameLayout
+        android:id="@+id/fl_cover"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:background="#F1F2F1">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:text="
+        君不见，黄河之水天上来，奔流到海不复回。
+　　君不见，高堂明镜悲白发，朝如青丝暮成雪！
+　　人生得意须尽欢，莫使金樽空对月。
+　　天生我材必有用，千金散尽还复来。"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_lv_tab"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="#F1F2F1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/tv_lv_hot"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="热门"/>
+
+            <TextView
+                android:id="@+id/tv_lv_new"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="最新"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1px"
+            android:layout_gravity="bottom"
+            android:background="#f3f3f3"/>
+    </FrameLayout>
+
+</LinearLayout>
