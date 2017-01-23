@@ -5,10 +5,13 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.hardware.Camera;
+import android.media.ExifInterface;
 import android.media.MediaRecorder;
 import android.os.CountDownTimer;
 import android.os.Environment;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.OrientationEventListener;
@@ -19,6 +22,7 @@ import android.widget.Toast;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -115,7 +119,7 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
 
         @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            Log.e(TAG, ">>>>>>>>>>surfaceChanged");
+            Log.e(TAG, ">>>>>>>>>>surfaceChanged width:" + width + " height:" + height);
             mWidthPixel = width;
             mHeightPixel = height;
             initCamera();
@@ -147,10 +151,24 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
             mCamera = Camera.open(mCurrCameraFacing);
             Camera.Parameters params = mCamera.getParameters();
             params.set("orientation", "portrait");//竖屏
-            //获取最大支持像素
-            setBestPictureSize(params);
-            //设置最好的预览尺寸
-            setBestPreviewSize(params);
+
+//            //获取最大支持像素
+//            setBestPictureSize(params);
+//            //设置最好的预览尺寸
+//            setBestPreviewSize(params);
+            float ratio = Math.max(mWidthPixel, mHeightPixel) / (1.0f * Math.min(mWidthPixel, mHeightPixel));
+            Log.e(TAG, "ratio:" + ratio);
+            Camera.Size preViewSize = getOptimalPreviewSize(params.getSupportedPreviewSizes(), mWidthPixel, mHeightPixel);
+            if (null != preViewSize){
+                Log.e(TAG, "preViewSize:" + preViewSize.width + " : " + preViewSize.height);
+                params.setPreviewSize(preViewSize.width,preViewSize.height);
+            }
+
+            Camera.Size pictureSize = getOptimalPreviewSize(params.getSupportedPictureSizes(), mWidthPixel, mHeightPixel);
+            if (null != pictureSize) {
+                Log.e(TAG, "pictureSize:" + pictureSize.width + " : " + pictureSize.height);
+                params.setPictureSize(pictureSize.width,pictureSize.height);
+            }
             //设置图片格式
             params.setPictureFormat(ImageFormat.JPEG);
             params.setJpegQuality(100);
@@ -188,11 +206,14 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
             mMediaRecorder.setAudioChannels(1);//单声道
             mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);//视频输出格式
             mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);//音频格式
-            mMediaRecorder.setVideoSize(320, 240);//设置分辨率,和微信小视频的像素一样
-            mMediaRecorder.setVideoFrameRate(17);// 设置每秒帧数 这个设置有可能会出问题
+            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);//视频录制格式
+
+            mMediaRecorder.setVideoSize(320, 240);//设置分辨率,320, 240微信小视频的像素一样
+            //mMediaRecorder.setVideoFrameRate(17);// 设置每秒帧数 这个设置三星手机会出问题
             mMediaRecorder.setVideoEncodingBitRate(1 * 1024 * 512);//清晰度
             mMediaRecorder.setOrientationHint(90);//输出旋转90度，保持竖屏录制
-            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);//视频录制格式
+
+
             //mMediaRecorder.setMaxDuration(Constant.MAXVEDIOTIME * 1000);
             mMediaRecorder.setOutputFile(mRecordFile.getAbsolutePath());
             mMediaRecorder.prepare();
@@ -242,6 +263,7 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                 } else {
                     rotation = 0;
                 }
+
                 mOrientation = rotation;
                 updateCameraOrientation();
             }
@@ -269,58 +291,70 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         }
     }
 
-    private void setBestPictureSize(Camera.Parameters params) {
-        //遍历获取课支持的最大像素
-        List<Camera.Size> pictureSizes = params.getSupportedPictureSizes();
+    private Camera.Size getBastSize(List<Camera.Size> sizes, float ratio) {
         Camera.Size best = null;
-        for (Camera.Size s : pictureSizes) {
-            if (null == best) {
-                best = s;
-            } else {
-                best = (s.height * s.width) > best.height * best.width ? s : best;
+        if (null != sizes) {
+            List<Camera.Size> temp = sizes;
+            //倒序
+            Collections.sort(temp, new Comparator<Camera.Size>() {
+                @Override
+                public int compare(Camera.Size lhs, Camera.Size rhs) {
+                    if (lhs.width > rhs.width) {
+                        return -1;
+                    } else if (lhs.width == rhs.width) {
+                        return 0;
+                    } else {
+                        return 1;
+                    }
+                }
+            });
+            float minDiff = 0.1f;
+            for (Camera.Size s : temp) {
+                float tmp = Math.abs(((float) s.height / (float) s.width) - ratio);
+
+                if (tmp < minDiff) {
+                    minDiff = tmp;
+                    best = s;
+                }
+                Log.d(TAG, "getBastSize: width:" + s.width + " height:" + s.height + " tmp:" + tmp);
             }
         }
-        if (null != best) {
-            mPictureSize = best.width * best.height;
-            // params.setPictureSize(mWidthPixel,mHeightPixel);
-            Log.e(TAG, "supportedPictureSizes->" + mPictureSize + " width:" + best.width + " height:" + best.height);
-        }
+        return best;
     }
 
-    /**
-     * 设置支持最好的像素
-     */
-    private void setBestPreviewSize(Camera.Parameters params) {
-        //获取手机支持的分辨率集合，并以宽度为基准降序排序
-        List<Camera.Size> previewSizes = params.getSupportedPreviewSizes();
-        Collections.sort(previewSizes, new Comparator<Camera.Size>() {
-            @Override
-            public int compare(Camera.Size lhs, Camera.Size rhs) {
-                if (lhs.width > rhs.width) {
-                    return -1;
-                } else if (lhs.width == rhs.width) {
-                    return 0;
-                } else {
-                    return 1;
+    private Camera.Size getOptimalPreviewSize(List<Camera.Size> sizes, int w, int h) {
+        final double ASPECT_TOLERANCE = 0.1;
+        double targetRatio = (double) h / w;
+        if (w > h)
+            targetRatio = (double) w / h;
+        if (sizes == null)
+            return null;
+        Camera.Size optimalSize = null;
+        double minDiff = Double.MAX_VALUE;
+        int targetHeight = h;
+        for (Camera.Size size : sizes) {
+            double ratio = (double) size.width / size.height;
+            if (size.height >= size.width)
+                ratio = (float) size.height / size.width;
+            if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE)
+                continue;
+            if (Math.abs(size.height - targetHeight) < minDiff) {
+                optimalSize = size;
+                minDiff = Math.abs(size.height - targetHeight);
+            }
+        }
+        if (optimalSize == null) {
+            minDiff = Double.MAX_VALUE;
+            for (Camera.Size size : sizes) {
+                if (Math.abs(size.height - targetHeight) < minDiff) {
+                    optimalSize = size;
+                    minDiff = Math.abs(size.height - targetHeight);
                 }
-            }
-        });
-        float minDiff = 100f;
-        float ratio = Math.max(mWidthPixel, mHeightPixel) / (1.0f * Math.min(mWidthPixel, mHeightPixel));//高宽比率3:4，且最接近屏幕宽度的分辨率，可以自己选择合适的想要的分辨率
-        Camera.Size best = null;
-        for (Camera.Size s : previewSizes) {
-            float tmp = Math.abs(((float) s.height / (float) s.width) - ratio);
-            if (tmp < minDiff) {
-                minDiff = tmp;
-                best = s;
+                Log.d(TAG, "getOptimalPreviewSize: width:" + size.width + " height:" + size.height + " minDiff:" + minDiff);
             }
         }
-        if (best != null) {
-            //设置最好的预览的size
-            params.setPreviewSize(best.width, best.height);
-            Log.e(TAG, "getSupportedPreviewSizes best->width:" + best.width + " height:" + best.height);
 
-        }
+        return optimalSize;
     }
 
 
@@ -388,7 +422,15 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         if (null == mCamera) {
             initCamera();
         }
-        mCamera.takePicture(null, null, pictureCallback);
+        mCamera.autoFocus(new Camera.AutoFocusCallback() {
+            @Override
+            public void onAutoFocus(boolean success, Camera camera) {
+                if (success) {
+                    camera.takePicture(null, null, pictureCallback);
+                }
+            }
+        });
+
     }
 
     private final Camera.PictureCallback pictureCallback = new Camera.PictureCallback() {
@@ -408,6 +450,8 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                 } catch (Exception e) {
                     e.printStackTrace();
                     Toast.makeText(getContext(), "保存相片失败", Toast.LENGTH_SHORT).show();
+                } finally {
+                    saveRotatePicture(mCaptureFile.getPath());
                 }
             } else {
                 Toast.makeText(getContext(), "拍照失败，请重试", Toast.LENGTH_SHORT).show();
@@ -416,6 +460,75 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
             camera.startPreview();
         }
     };
+
+    private void saveRotatePicture(String path) {
+        if (TextUtils.isEmpty(path)) return;
+        int degree = getBitmapDegree(path);
+        rotateBitmapByDegree(BitmapFactory.decodeFile(path), degree);
+    }
+
+    /**
+     * 读取图片的旋转的角度
+     *
+     * @param path 图片绝对路径
+     * @return 图片的旋转角度
+     */
+    private int getBitmapDegree(String path) {
+        int degree = 0;
+        try {
+            // 从指定路径下读取图片，并获取其EXIF信息
+            ExifInterface exifInterface = new ExifInterface(path);
+            // 获取图片的旋转信息
+            int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    degree = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    degree = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    degree = 270;
+                    break;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Log.d(TAG, "degree:" + degree);
+        return degree;
+    }
+
+
+    /**
+     * 将图片按照某个角度进行旋转
+     *
+     * @param bm     需要旋转的图片
+     * @param degree 旋转角度
+     */
+    private void rotateBitmapByDegree(Bitmap bm, int degree) {
+        Bitmap newBitmap = null;
+        // 根据旋转角度，生成旋转矩阵
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degree);
+        try {
+            // 将原始图片按照旋转矩阵进行旋转，并得到新的图片
+            newBitmap = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), bm.getHeight(), matrix, true);
+            File rotateFile = new File(mCaptureFile.getPath().replace(".jpg", "_rotate.jpg"));
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(rotateFile));
+            newBitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
+            bos.flush();
+            bos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (newBitmap == null) {
+                newBitmap = bm;
+            }
+            if (bm != newBitmap) {
+                bm.recycle();
+            }
+        }
+    }
 
     /**
      * 停止录制
@@ -551,4 +664,8 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         return null == mCaptureFile ? "" : mCaptureFile.getPath();
     }
 
+
+    public String getRotateCaptureFilePath() {
+        return getCaptureFilePath().replace(".jpg", "_rotate.jpg");
+    }
 }

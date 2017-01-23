@@ -58,7 +58,7 @@ public class TestRecordViewActivity extends AppCompatActivity {
             mRecordView.stopRecord();
             path = mRecordView.getRecordFilePath();
         } else {
-            path = mRecordView.getCaptureFilePath();
+            path = mRecordView.getRotateCaptureFilePath();
         }
         Intent intent = new Intent(this, PreViewActivity.class);
         intent.putExtra("path", path);

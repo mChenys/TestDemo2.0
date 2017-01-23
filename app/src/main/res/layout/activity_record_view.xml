@@ -9,7 +9,7 @@
         android:layout_centerInParent="true"
         android:id="@+id/recordView"
         android:layout_width="240dp"
-        android:layout_height="240dp"/>
+        android:layout_height="320dp"/>
     <TextView
         android:textSize="20sp"
         android:textColor="@color/colorAccent"
