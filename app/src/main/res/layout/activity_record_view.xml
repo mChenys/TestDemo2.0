@@ -1,22 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 android:layout_width="match_parent"
-                android:background="#000"
                 android:layout_height="match_parent"
+                android:background="#000"
                 android:orientation="vertical">
 
     <mchenys.net.csdn.blog.testmoden20.test7.RecordView
-        android:layout_centerInParent="true"
         android:id="@+id/recordView"
         android:layout_width="240dp"
-        android:layout_height="320dp"/>
+        android:layout_height="320dp"
+        android:layout_centerHorizontal="true"/>
+
     <TextView
-        android:textSize="20sp"
-        android:textColor="@color/colorAccent"
         android:id="@+id/tv_time"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorAccent"
+        android:textSize="20sp"/>
+
+    <mchenys.net.csdn.blog.testmoden20.test7.SwitchLayout
+        android:id="@+id/switchLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/ll_bottom"
+        android:layout_centerHorizontal="true">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="视频视频视频视频"
+            android:textColor="#fff"
+            android:textSize="22sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="拍照拍"
+            android:textColor="#fff"
+            android:textSize="22sp"/>
+    </mchenys.net.csdn.blog.testmoden20.test7.SwitchLayout>
+
     <LinearLayout
+        android:id="@+id/ll_bottom"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
