@@ -40,10 +40,7 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
     private int mWidthPixel, mHeightPixel;//SurfaceView的宽高
     private int maxDuration;//最大录制时长,单位秒
     private Camera mCamera;//相机
-    private int mPictureSize;//最大支持的像素
-    private OnRecordCallback mOnRecordCallback;
     private File mRecordFile;//录制的视频文件
-    private File mCompressRecordFile;//压缩后的视频文件
     private File mCaptureFile;//拍照保存的文件
     private Camera.Parameters mCaptureParameters;//相机配置，在录像前记录，用以录像结束后恢复原配置
     private MediaRecorder mMediaRecorder;
@@ -52,42 +49,33 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
     private int mCurrCameraFacing;//当前设置头类型,0:后置/1:前置
     private boolean enableCountDown;//是否启用倒计时录制视频
     private CountDownTimer mCountDownTimer;
+    private boolean isRecording;//是否正在录制
+    private OnCaptureCallback mOnCaptureCallback;
+    private OnRecordCallback mOnRecordCallback;
+
 
     public interface OnRecordCallback {
-        void onFinish();
+        void onFinish(String filePath);
 
         void onProgress(int total, int curr);
     }
 
-    public void setMaxDuration(int maxDuration) {
-        this.maxDuration = maxDuration;
+    public interface OnCaptureCallback {
+        void onFinish(String filePath);
     }
 
-    /**
-     * 闪光灯类型枚举 默认为关闭
-     */
-    public enum FlashMode {
-        /**
-         * ON:拍照时打开闪光灯
-         */
-        ON,
-        /**
-         * OFF：不打开闪光灯
-         */
-        OFF,
-        /**
-         * AUTO：系统决定是否打开闪光灯
-         */
-        AUTO,
-        /**
-         * TORCH：一直打开闪光灯
-         */
-        TORCH
+    public void setOnCaptureCallback(OnCaptureCallback c) {
+        this.mOnCaptureCallback = c;
     }
+
 
     public void setOnRecordCallback(OnRecordCallback c) {
         this.mOnRecordCallback = c;
         enableCountDown = null != c;
+    }
+
+    public void setMaxDuration(int maxDuration) {
+        this.maxDuration = maxDuration;
     }
 
     public RecordView(Context context) {
@@ -114,6 +102,16 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         @Override
         public void surfaceCreated(SurfaceHolder holder) {
             Log.e(TAG, ">>>>>>>>>>surfaceCreated");
+            try {
+                if (mCamera == null) {
+                    openCamera();
+                }
+                mCamera.setPreviewDisplay(mSurfaceHolder);
+                mCamera.startPreview();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(getContext(), "打开相机失败", Toast.LENGTH_SHORT).show();
+            }
 
         }
 
@@ -122,20 +120,49 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
             Log.e(TAG, ">>>>>>>>>>surfaceChanged width:" + width + " height:" + height);
             mWidthPixel = width;
             mHeightPixel = height;
-            initCamera();
+            setCameraParameters();
+            updateCameraOrientation();
         }
 
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
             Log.e(TAG, ">>>>>>>>>>surfaceDestroyed");
+            releaseRecord();
             releaseCamera();
         }
     }
 
+    private void setCameraParameters() {
+        Camera.Parameters params = mCamera.getParameters();
+        Camera.Size preViewSize = getOptimalPreviewSize(params.getSupportedPreviewSizes(), mWidthPixel, mHeightPixel);
+        if (null != preViewSize) {
+            Log.e(TAG, "preViewSize:" + preViewSize.width + " : " + preViewSize.height);
+            params.setPreviewSize(preViewSize.width, preViewSize.height);
+        }
+
+        Camera.Size pictureSize = getOptimalPreviewSize(params.getSupportedPictureSizes(), mWidthPixel, mHeightPixel);
+        if (null != pictureSize) {
+            Log.e(TAG, "pictureSize:" + pictureSize.width + " : " + pictureSize.height);
+            params.setPictureSize(pictureSize.width, pictureSize.height);
+        }
+        //设置图片格式
+        params.setPictureFormat(ImageFormat.JPEG);
+        params.setJpegQuality(100);
+        params.setJpegThumbnailQuality(100);
+        //自动聚焦模式
+        params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+        mCamera.setParameters(params);
+
+        //设置闪光灯模式
+        setFlashMode(mFlashMode);
+        //开启屏幕朝向监听
+        startOrientationChangeListener();
+    }
+
     /**
-     * 初始化相机
+     * 打开相机
      */
-    private void initCamera() {
+    private void openCamera() {
         if (null != mCamera) {
             releaseCamera();
         }
@@ -149,40 +176,6 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                 return;
             }
             mCamera = Camera.open(mCurrCameraFacing);
-            Camera.Parameters params = mCamera.getParameters();
-            params.set("orientation", "portrait");//竖屏
-
-//            //获取最大支持像素
-//            setBestPictureSize(params);
-//            //设置最好的预览尺寸
-//            setBestPreviewSize(params);
-            float ratio = Math.max(mWidthPixel, mHeightPixel) / (1.0f * Math.min(mWidthPixel, mHeightPixel));
-            Log.e(TAG, "ratio:" + ratio);
-            Camera.Size preViewSize = getOptimalPreviewSize(params.getSupportedPreviewSizes(), mWidthPixel, mHeightPixel);
-            if (null != preViewSize){
-                Log.e(TAG, "preViewSize:" + preViewSize.width + " : " + preViewSize.height);
-                params.setPreviewSize(preViewSize.width,preViewSize.height);
-            }
-
-            Camera.Size pictureSize = getOptimalPreviewSize(params.getSupportedPictureSizes(), mWidthPixel, mHeightPixel);
-            if (null != pictureSize) {
-                Log.e(TAG, "pictureSize:" + pictureSize.width + " : " + pictureSize.height);
-                params.setPictureSize(pictureSize.width,pictureSize.height);
-            }
-            //设置图片格式
-            params.setPictureFormat(ImageFormat.JPEG);
-            params.setJpegQuality(100);
-            params.setJpegThumbnailQuality(100);
-            //自动聚焦模式
-            params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-            mCamera.setParameters(params);
-            //设置闪光灯模式
-            setFlashMode(mFlashMode);
-            //开启屏幕朝向监听
-            startOrientationChangeListener();
-
-            mCamera.setPreviewDisplay(mSurfaceHolder);
-            mCamera.startPreview();//开始预览
         } catch (Exception e) {
             e.printStackTrace();
             releaseCamera();
@@ -191,12 +184,12 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
 
     private void initRecord() {
         try {
-            if (mMediaRecorder == null) {
+            if (mMediaRecorder == null)
                 mMediaRecorder = new MediaRecorder();
-            } else {
+            else
                 mMediaRecorder.reset();
-            }
-            mCaptureParameters = mCamera.getParameters();//保存拍照参数
+            mCaptureParameters = mCamera.getParameters();
+            setFlashMode(FlashMode.OFF);
             mCamera.unlock();
             mMediaRecorder.setCamera(mCamera);
             mMediaRecorder.setOnErrorListener(this);
@@ -213,7 +206,11 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
             mMediaRecorder.setVideoEncodingBitRate(1 * 1024 * 512);//清晰度
             mMediaRecorder.setOrientationHint(90);//输出旋转90度，保持竖屏录制
 
-
+            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            mRecordFile = new File(dir, System.currentTimeMillis() + ".mp4");
             //mMediaRecorder.setMaxDuration(Constant.MAXVEDIOTIME * 1000);
             mMediaRecorder.setOutputFile(mRecordFile.getAbsolutePath());
             mMediaRecorder.prepare();
@@ -224,24 +221,51 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
     }
 
     public void setFlashMode(FlashMode flashMode) {
-        if (mCamera == null) return;
-        mFlashMode = flashMode;
-        Camera.Parameters parameters = mCamera.getParameters();
-        switch (flashMode) {
-            case ON:
-                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_ON);
-                break;
-            case AUTO:
-                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
-                break;
-            case TORCH:
-                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-                break;
-            default:
-                parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
-                break;
+        if (mCamera != null && null != mCamera.getParameters()) {
+            mFlashMode = flashMode;
+            Camera.Parameters parameters = mCamera.getParameters();
+            switch (flashMode) {
+                case ON:
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_ON);
+                    break;
+                case AUTO:
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
+                    break;
+                case TORCH:
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+                    break;
+                default:
+                    parameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+                    break;
+            }
+            mCamera.setParameters(parameters);
         }
-        mCamera.setParameters(parameters);
+    }
+
+    public FlashMode getFlashMode() {
+        return mFlashMode;
+    }
+
+    /**
+     * 切换闪关灯
+     *
+     * @return 返回当前闪关灯状态
+     */
+    public FlashMode switchFlashMode() {
+        if (getFlashMode() == FlashMode.ON) {
+            setFlashMode(FlashMode.OFF);
+            return FlashMode.OFF;
+        } else if (getFlashMode() == FlashMode.OFF) {
+            setFlashMode(FlashMode.AUTO);
+            return FlashMode.AUTO;
+        } else if (getFlashMode() == FlashMode.AUTO) {
+            setFlashMode(FlashMode.TORCH);
+            return FlashMode.TORCH;
+        } else if (getFlashMode() == FlashMode.TORCH) {
+            setFlashMode(FlashMode.ON);
+            return FlashMode.ON;
+        }
+        return null;
     }
 
     /**
@@ -263,7 +287,7 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                 } else {
                     rotation = 0;
                 }
-
+                if (rotation == mOrientation) return;
                 mOrientation = rotation;
                 updateCameraOrientation();
             }
@@ -275,19 +299,23 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
      * 根据当前朝向修改保存图片的旋转角度
      */
     private void updateCameraOrientation() {
-        if (mCamera != null) {
-            Camera.Parameters parameters = mCamera.getParameters();
-            //rotation参数为 0、90、180、270。水平方向为0。
-            int rotation = 90 + mOrientation == 360 ? 0 : 90 + mOrientation;
-            //前置摄像头需要对垂直方向做变换，否则照片是颠倒的
-            if (mCurrCameraFacing == 1) {
-                if (rotation == 90) rotation = 270;
-                else if (rotation == 270) rotation = 90;
+        try {
+            if (mCamera != null && null != mCamera.getParameters()) {
+                Camera.Parameters parameters = mCamera.getParameters();
+                //rotation参数为 0、90、180、270。水平方向为0。
+                int rotation = 90 + mOrientation == 360 ? 0 : 90 + mOrientation;
+                //前置摄像头需要对垂直方向做变换，否则照片是颠倒的
+                if (mCurrCameraFacing == 1) {
+                    if (rotation == 90) rotation = 270;
+                    else if (rotation == 270) rotation = 90;
+                }
+                parameters.setRotation(rotation);//生成的图片转90°
+                //预览图片旋转90°
+                mCamera.setDisplayOrientation(90);//预览转90°
+                mCamera.setParameters(parameters);
             }
-            parameters.setRotation(rotation);//生成的图片转90°
-            //预览图片旋转90°
-            mCamera.setDisplayOrientation(90);//预览转90°
-            mCamera.setParameters(parameters);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -385,28 +413,50 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         } else {
             mCurrCameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
         }
-        initCamera();
-        //updateCameraOrientation();
+        openCamera();
+        if (mCamera != null) {
+            setCameraParameters();
+            updateCameraOrientation();
+            try {
+                mCamera.setPreviewDisplay(getHolder());
+                mCamera.startPreview();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    /**
+     * 停止录制
+     */
+    public void stopRecord() {
+        endTimeCount();
+        releaseRecord();
+        if (isRecording && null != mOnRecordCallback && null != mRecordFile && !TextUtils.isEmpty(mRecordFile.getPath())) {
+            mOnRecordCallback.onFinish(mRecordFile.getPath());
+        }
+        isRecording = false;
     }
 
     /**
      * 开始录制
      */
     public void startRecord() {
-        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        if (mCamera == null)
+            openCamera();
+        if (mCamera == null) {
+            return;
         }
-        mRecordFile = new File(dir, System.currentTimeMillis() + ".mp4");
-        if (null == mCamera) {
-            initCamera();
-        }
-        if (null == mMediaRecorder) {
-            initRecord();
-        }
-        mMediaRecorder.start();//开始录制
-        if (enableCountDown) {
-            startTimeCount();
+        mCamera.autoFocus(null);
+        initRecord();
+        if (null != mMediaRecorder) {
+
+            mMediaRecorder.start();//开始录制
+            isRecording = true;
+            if (enableCountDown) {
+                startTimeCount();
+            }
         }
     }
 
@@ -414,23 +464,14 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
      * 开始拍照
      */
     public void startCapture() {
-        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        mCaptureFile = new File(dir, System.currentTimeMillis() + ".jpg");
-        if (null == mCamera) {
-            initCamera();
-        }
-        mCamera.autoFocus(new Camera.AutoFocusCallback() {
-            @Override
-            public void onAutoFocus(boolean success, Camera camera) {
-                if (success) {
+        if (null != mCamera) {
+            mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
                     camera.takePicture(null, null, pictureCallback);
                 }
-            }
-        });
-
+            });
+        }
     }
 
     private final Camera.PictureCallback pictureCallback = new Camera.PictureCallback() {
@@ -443,10 +484,18 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                 //生成缩略图
                 // Bitmap thumbnail= ThumbnailUtils.extractThumbnail(bm, 213, 213);
                 try {
+                    File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+                    if (!dir.exists()) {
+                        dir.mkdirs();
+                    }
+                    mCaptureFile = new File(dir, System.currentTimeMillis() + ".jpg");
                     BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(mCaptureFile));
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
                     bos.flush();
                     bos.close();
+                    if (null != mOnCaptureCallback) {
+                        mOnCaptureCallback.onFinish(mCaptureFile.getPath());
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     Toast.makeText(getContext(), "保存相片失败", Toast.LENGTH_SHORT).show();
@@ -530,15 +579,6 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         }
     }
 
-    /**
-     * 停止录制
-     */
-    public void stopRecord() {
-        endTimeCount();
-        releaseRecord();
-        // releaseCamera();
-    }
-
 
     /**
      * 开始计时
@@ -557,7 +597,6 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
             public void onFinish() {
                 if (null != mOnRecordCallback) {
                     mOnRecordCallback.onProgress(maxDuration, maxDuration);
-                    mOnRecordCallback.onFinish();
                 }
                 stopRecord();
 
@@ -573,13 +612,15 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
     }
 
     private void releaseRecord() {
-        if (null != mMediaRecorder) {
-            try {
+
+        try {
+            if (null != mMediaRecorder) {
                 mMediaRecorder.setOnErrorListener(null);
-                mMediaRecorder.setPreviewDisplay(null);
-                mMediaRecorder.stop();
+                if (isRecording) mMediaRecorder.stop();
+                mMediaRecorder.reset();
                 mMediaRecorder.release();
                 mMediaRecorder = null;
+
                 // TODO: 2017/1/22 保存视频的缩略图
                 //恢复相机参数
                 if (mCaptureParameters != null && mCamera != null) {
@@ -593,9 +634,9 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                     mCamera.startPreview();
                     mCaptureParameters = null;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -605,10 +646,7 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
     private void releaseCamera() {
         if (null != mCamera) {
             try {
-                mCamera.setPreviewCallback(null);
-//                mCamera.setPreviewDisplay(null);
                 mCamera.stopPreview();
-                mCamera.lock();
                 mCamera.release();
                 mCamera = null;
             } catch (Exception e) {
@@ -622,6 +660,8 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         try {
             if (mr != null)
                 mr.reset();
+            isRecording = false;
+            Toast.makeText(getContext(), "视频录制出错,请重试", Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -667,5 +707,27 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
 
     public String getRotateCaptureFilePath() {
         return getCaptureFilePath().replace(".jpg", "_rotate.jpg");
+    }
+
+    /**
+     * 闪光灯类型枚举 默认为关闭
+     */
+    public enum FlashMode {
+        /**
+         * ON:拍照时打开闪光灯
+         */
+        ON,
+        /**
+         * OFF：不打开闪光灯
+         */
+        OFF,
+        /**
+         * AUTO：系统决定是否打开闪光灯
+         */
+        AUTO,
+        /**
+         * TORCH：一直打开闪光灯
+         */
+        TORCH
     }
 }

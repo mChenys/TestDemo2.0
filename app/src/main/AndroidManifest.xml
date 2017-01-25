@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="mchenys.net.csdn.blog.testmoden20"
+<manifest
+     android:installLocation="auto" package="mchenys.net.csdn.blog.testmoden20"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.VIBRATE"/>

@@ -1,7 +1,6 @@
 package mchenys.net.csdn.blog.testmoden20.test7;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -19,16 +18,21 @@ public class SwitchLayout extends FrameLayout {
     private int mSwitchWidth;
     private OnSwitchCallback mOnSwitchCallback;
 
-    public interface OnSwitchCallback{
+    public interface OnSwitchCallback {
         //切换到左边
-        void onLeft();
+        void onLeft(View lv, View rv);
+
         //切换到右边
-        void onRight();
+        void onRight(View lv, View rv);
     }
 
     public void setOnSwitchCallback(OnSwitchCallback c) {
         mOnSwitchCallback = c;
+        if (null != c) {
+            mOnSwitchCallback.onLeft(mLeftTv, mRightTv);
+        }
     }
+
     public SwitchLayout(Context context) {
         this(context, null);
     }
@@ -40,7 +44,6 @@ public class SwitchLayout extends FrameLayout {
     public SwitchLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mViewPadding = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
-        setBackgroundColor(Color.RED);
     }
 
     @Override
@@ -62,6 +65,7 @@ public class SwitchLayout extends FrameLayout {
                 return false;
             }
         });
+
     }
 
     @Override
@@ -88,7 +92,7 @@ public class SwitchLayout extends FrameLayout {
         if (getScrollX() != 0) {
             scrollBy(-getScrollX(), 0);
             if (null != mOnSwitchCallback) {
-                mOnSwitchCallback.onRight();
+                mOnSwitchCallback.onLeft(mLeftTv, mRightTv);
             }
         }
     }
@@ -97,7 +101,7 @@ public class SwitchLayout extends FrameLayout {
         if (getScrollX() != -mSwitchWidth) {
             scrollBy(-mSwitchWidth, 0);
             if (null != mOnSwitchCallback) {
-                mOnSwitchCallback.onLeft();
+                mOnSwitchCallback.onRight(mLeftTv, mRightTv);
             }
         }
     }
