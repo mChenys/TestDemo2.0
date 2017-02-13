@@ -1,14 +1,14 @@
 package mchenys.net.csdn.blog.testmoden20.test3;
 
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.DefaultItemAnimator;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +16,6 @@ import android.view.ViewTreeObserver;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mchenys.net.csdn.blog.testmoden20.R;
-import mchenys.net.csdn.blog.testmoden20.test1.SpacesItemDecoration;
 
 /**
  * Created by mChenys on 2017/1/12.
@@ -43,11 +41,8 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
     private View headerView1;
     private float maxTopMoveH; //顶部滑动的最大有效距离,用于计算百分比
     private float titleMoveDx, titleMoveDy;//添加控件移动的x,y最大距离
-    private MyAdapter mAdapter;
-    private List<String> mData = new ArrayList<>();
-    private RecyclerView mRecyclerView;
-    private boolean isPined;
-    private boolean needChangeAlpha;
+    private ViewPager mViewPager;
+    private StaggeredGridFragment[] fragments = new StaggeredGridFragment[]{new StaggeredGridFragment(), new StaggeredGridFragment()};
     private AbsListView.OnScrollListener mOnScrollListener = new AbsListView.OnScrollListener() {
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -67,20 +62,16 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
                 mFromTv.setTranslationX(fraction * titleMoveDx);
                 mFromTv.setTranslationY(fraction * titleMoveDy);
                 mTopTab.setVisibility(View.GONE);
-                if (needChangeAlpha) {
-                    mTitleBg.setAlpha(fraction);
-                }
-                isPined = false;
+                mTitleBg.setAlpha(fraction);
             } else if (fraction >= 1) {
                 mTopTab.setVisibility(View.VISIBLE);
                 mFromTv.setTranslationX(titleMoveDx);
                 mFromTv.setTranslationY(titleMoveDy);
                 mTitleBg.setAlpha(1.0f);
-                needChangeAlpha=true;
-                isPined = true;
             }
         }
     };
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,10 +105,10 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
                 titleMoveDy = mToTv.getY() - mFromTv.getY();
             }
         });
+
     }
 
     private void initView() {
-        needChangeAlpha = true;
         dp60 = (int) getResources().getDimension(R.dimen.dp60);
         mListView = (ListView) findViewById(R.id.lv);
         mFromTv = (TextView) findViewById(R.id.tv_add_from);
@@ -131,7 +122,24 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
         mLvTabHotTv = (TextView) headerView1.findViewById(R.id.tv_lv_hot);
         mLvTabNewTv = (TextView) headerView1.findViewById(R.id.tv_lv_new);
         mListView.addHeaderView(headerView1);
-        initRecycleView();
+
+        final View contentView = View.inflate(this, R.layout.layout_vp, null);
+        mViewPager = (ViewPager) contentView.findViewById(R.id.vp);
+        mViewPager.setAdapter(new FragmentPagerAdapter(getSupportFragmentManager()) {
+            @Override
+            public Fragment getItem(int position) {
+                return fragments[position];
+            }
+
+            @Override
+            public int getCount() {
+                return fragments.length;
+            }
+        });
+
+
+        //设置默认的选中页面
+        mViewPager.setCurrentItem(0);
         mListView.setAdapter(new BaseAdapter() {
             @Override
             public int getCount() {
@@ -150,46 +158,42 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
 
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
-                return mRecyclerView;
+                return contentView;
             }
         });
 
-
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                fragments[0].refreshData(getData(0));
+            }
+        },1000);
     }
 
 
     @Override
     public void onClick(View v) {
-        mData.clear();
         switch (v.getId()) {
             case R.id.tv_top_hot:
                 Toast.makeText(TestTitleMoveActivity.this, "热门", Toast.LENGTH_SHORT).show();
-                mData.addAll(getData(0));
-                mAdapter.notifyDataSetChanged();
+                fragments[0].refreshData(getData(0));
                 break;
             case R.id.tv_lv_hot:
                 Toast.makeText(TestTitleMoveActivity.this, "热门", Toast.LENGTH_SHORT).show();
-                mData.addAll(getData(0));
-                mAdapter.notifyDataSetChanged();
-                mListView.smoothScrollToPositionFromTop(1,2*dp60);
+                mListView.smoothScrollToPositionFromTop(1, 2 * dp60);
+                fragments[0].refreshData(getData(0));
                 break;
             case R.id.tv_top_new:
                 Toast.makeText(TestTitleMoveActivity.this, "最新", Toast.LENGTH_SHORT).show();
-                mData.addAll(getData(1));
-                mAdapter.notifyDataSetChanged();
+                fragments[1].refreshData(getData(1));
                 break;
             case R.id.tv_lv_new:
                 Toast.makeText(TestTitleMoveActivity.this, "最新", Toast.LENGTH_SHORT).show();
-                mData.addAll(getData(1));
-                mAdapter.notifyDataSetChanged();
-                mListView.smoothScrollToPositionFromTop(1,2*dp60);
+                mListView.smoothScrollToPositionFromTop(1, 2 * dp60);
+                fragments[1].refreshData(getData(1));
                 break;
 
         }
-        mTitleBg.setAlpha(1.0f);
-        needChangeAlpha = false;
-
-
 
     }
 
@@ -200,61 +204,6 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
         }
         return temp;
     }
-    private void initRecycleView() {
-        mRecyclerView = new RecyclerView(this);
-        mRecyclerView.setItemAnimator(new DefaultItemAnimator());
-        mRecyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-        mRecyclerView.addItemDecoration(new SpacesItemDecoration(16));
-        mData.addAll(getData(0));
-        mRecyclerView.setAdapter(mAdapter=new MyAdapter(mData,this));
-    }
 
-    class MyAdapter extends RecyclerView.Adapter<MyViewHolder> {
-        private final List<String> data;
-        public MyAdapter(List<String> data, Context context) {
-            this.data = data;
-        }
-
-        @Override
-        public MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            return new MyViewHolder(View.inflate(getBaseContext(), R.layout.item_recycle, null));
-        }
-
-        @Override
-        public void onBindViewHolder(final MyViewHolder holder, final int position) {
-            holder.tv.setText(data.get(position));
-            if (position % 2 == 0) {
-                holder.iv.setImageResource(R.drawable.bg2);
-            } else if (position % 5 == 0) {
-                holder.iv.setImageResource(R.drawable.bg3);
-            } else {
-                holder.iv.setImageResource(R.drawable.bg1);
-            }
-            holder.itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Toast.makeText(TestTitleMoveActivity.this, "position:"+position, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return data.size();
-        }
-
-    }
-
-    class MyViewHolder extends RecyclerView.ViewHolder {
-        private TextView tv;
-        private ImageView iv;
-
-        public MyViewHolder(View itemView) {
-            super(itemView);
-            tv = (TextView) itemView.findViewById(R.id.tv);
-            iv = (ImageView) itemView.findViewById(R.id.iv);
-        }
-
-    }
 
 }
