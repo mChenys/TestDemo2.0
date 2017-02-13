@@ -4,8 +4,8 @@
               android:layout_height="match_parent"
               android:orientation="vertical">
 
-    <ListView
+    <mchenys.net.csdn.blog.testmoden20.test1.PullToRefreshListView
         android:id="@+id/lv"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"></ListView>
+        android:layout_height="match_parent"/>
 </LinearLayout>

@@ -4,19 +4,23 @@
                 android:layout_height="match_parent"
                 android:background="#000"
                 android:orientation="vertical">
-
+    <FrameLayout
+        android:layout_above="@+id/switchLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
     <mchenys.net.csdn.blog.testmoden20.test7.RecordView
         android:id="@+id/recordView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/switchLayout"
-        android:layout_centerHorizontal="true"/>
+        />
     <ProgressBar
         android:id="@+id/progressBar"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-        android:layout_alignBottom="@+id/recordView"
+        android:layout_gravity="bottom"
         android:layout_width="match_parent"
+        android:minHeight="10dp"
         android:layout_height="10dp"/>
+    </FrameLayout>
     <TextView
         android:id="@+id/tv_time"
         android:layout_width="wrap_content"

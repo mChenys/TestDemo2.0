@@ -163,36 +163,31 @@ public class TestTitleMoveActivity extends AppCompatActivity implements View.OnC
         mData.clear();
         switch (v.getId()) {
             case R.id.tv_top_hot:
+                Toast.makeText(TestTitleMoveActivity.this, "热门", Toast.LENGTH_SHORT).show();
+                mData.addAll(getData(0));
+                mAdapter.notifyDataSetChanged();
+                break;
             case R.id.tv_lv_hot:
                 Toast.makeText(TestTitleMoveActivity.this, "热门", Toast.LENGTH_SHORT).show();
                 mData.addAll(getData(0));
+                mAdapter.notifyDataSetChanged();
+                mListView.smoothScrollToPositionFromTop(1,2*dp60);
                 break;
             case R.id.tv_top_new:
+                Toast.makeText(TestTitleMoveActivity.this, "最新", Toast.LENGTH_SHORT).show();
+                mData.addAll(getData(1));
+                mAdapter.notifyDataSetChanged();
+                break;
             case R.id.tv_lv_new:
                 Toast.makeText(TestTitleMoveActivity.this, "最新", Toast.LENGTH_SHORT).show();
                 mData.addAll(getData(1));
+                mAdapter.notifyDataSetChanged();
+                mListView.smoothScrollToPositionFromTop(1,2*dp60);
                 break;
 
         }
-        mAdapter.notifyDataSetChanged();
         mTitleBg.setAlpha(1.0f);
         needChangeAlpha = false;
-        mRecyclerView.setVisibility(View.INVISIBLE);
-        if (!isPined) {
-            mListView.setSelection(1);
-            mListView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mListView.smoothScrollBy(-2 * dp60, 100);
-                }
-            });
-            mListView.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mRecyclerView.setVisibility(View.VISIBLE);
-                }
-            }, 250);
-        }
 
 
 

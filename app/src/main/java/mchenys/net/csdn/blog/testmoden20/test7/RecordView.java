@@ -413,6 +413,7 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
         } else {
             mCurrCameraFacing = Camera.CameraInfo.CAMERA_FACING_BACK;
         }
+
         openCamera();
         if (mCamera != null) {
             setCameraParameters();
@@ -424,6 +425,8 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
                 e.printStackTrace();
             }
         }
+
+      
     }
 
 
@@ -585,16 +588,18 @@ public class RecordView extends SurfaceView implements MediaRecorder.OnErrorList
      */
     private void startTimeCount() {
         endTimeCount();
-        mCountDownTimer = new CountDownTimer(maxDuration * 1000l + 1000l, 1000l) {
+        mCountDownTimer = new CountDownTimer(maxDuration * 1000l+1000l, 1000l) {
             @Override
             public void onTick(long millisUntilFinished) {
                 if (null != mOnRecordCallback) {
-                    mOnRecordCallback.onProgress(maxDuration, (int) (maxDuration - millisUntilFinished / 1000));
+                    mOnRecordCallback.onProgress(maxDuration, (int) (maxDuration - millisUntilFinished / 1000l));
                 }
+                Log.e(TAG, "onTick:" + (millisUntilFinished / 1000l));
             }
 
             @Override
             public void onFinish() {
+                Log.e(TAG, "onFinish");
                 if (null != mOnRecordCallback) {
                     mOnRecordCallback.onProgress(maxDuration, maxDuration);
                 }

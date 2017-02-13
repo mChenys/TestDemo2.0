@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@+id/xlistview_footer_content"
+                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:background="#99DCDCDC"
+                android:clickable="true"
+                android:gravity="center">
+
+    <View
+        android:id="@+id/v_top_divider"
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:background="#e7e7e7"
+        android:visibility="gone"/>
+
+    <RelativeLayout
+        android:id="@+id/rlayout_noMore"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/v_top_divider"
+        android:gravity="center"
+        >
+
+        <TextView
+            android:id="@+id/xlistview_footer_hint_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_centerVertical="true"
+            android:gravity="center_vertical"
+            android:text="没有更多了，本喵是万能的分界线。"
+            android:textColor="#333333"
+            android:textSize="14dp"/>
+
+        <ProgressBar
+            android:id="@+id/xlistview_footer_progressbar"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginRight="10dip"
+            android:layout_toLeftOf="@id/xlistview_footer_hint_textview"
+            android:visibility="gone"/>
+
+        <ImageView
+            android:id="@+id/iv_footer_cat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="4dp"
+            android:layout_toRightOf="@+id/xlistview_footer_hint_textview"
+            android:paddingTop="10dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/iv_footer_cat"/>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/rlayout_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/pb_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_centerVertical="true"
+            android:layout_gravity="center"
+            android:layout_toLeftOf="@+id/tv_loading"
+            android:indeterminateDrawable="@drawable/app_progress_bar"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tv_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_centerInParent="true"
+            android:gravity="center_vertical"
+            android:text="正在加载中......"
+            android:textColor="#333333"
+            android:textSize="14sp"/>
+
+        <ImageView
+            android:id="@+id/iv_loadingIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="24dp"
+            android:layout_toRightOf="@+id/tv_loading"
+            android:paddingTop="10dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/iv_footer_cat"/>
+    </RelativeLayout>
+</RelativeLayout>
+

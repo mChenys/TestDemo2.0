@@ -27,6 +27,7 @@ public class TestRecordViewActivity extends AppCompatActivity implements View.On
     private ImageButton mRecordShutterButton;
     private boolean isRecording;
     private ProgressBar mProgressBar;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +51,7 @@ public class TestRecordViewActivity extends AppCompatActivity implements View.On
         mRecordView.setOnRecordCallback(new RecordView.OnRecordCallback() {
             @Override
             public void onFinish(String filePath) {
+                isRecording = false;
                 preView(filePath);
                 mRecordShutterButton.setBackgroundResource(R.drawable.btn_shutter_record);
             }
@@ -84,7 +86,7 @@ public class TestRecordViewActivity extends AppCompatActivity implements View.On
                 mRecordShutterButton.setBackgroundResource(R.drawable.btn_shutter_record);
                 mRecordShutterButton.setVisibility(View.GONE);
                 mRecordView.stopRecord();
-                isRecording=false;
+                isRecording = false;
             }
 
             @Override
